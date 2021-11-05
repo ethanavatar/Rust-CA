@@ -91,7 +91,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_life"
+name = "rust_ca"
 version = "0.1.0"
 dependencies = [
  "modulo",

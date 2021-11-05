@@ -8,20 +8,15 @@ use sdl2::rect::Rect;
 
 use modulo::Mod;
 
-use std::time::Duration;
-
-const CELLMAP_WIDTH: i32 = 400;
-const CELLMAP_HEIGHT: i32 = 400;
+const CELLMAP_WIDTH: i32 = 200;
+const CELLMAP_HEIGHT: i32 = 200;
 const CELLMAP_SIZE: i32 = CELLMAP_WIDTH * CELLMAP_HEIGHT;
 
 const SCREEN_WIDTH: i32 = 1200;
 const SCREEN_HEIGHT: i32 = 1200;
-const SCREEN_SIZE: i32 = SCREEN_WIDTH * SCREEN_HEIGHT;
 
 const CELL_WIDTH: i32 = SCREEN_WIDTH / CELLMAP_WIDTH;
 const CELL_HEIGHT: i32 = SCREEN_HEIGHT / CELLMAP_HEIGHT;
-
-const FPS : i32 = 60;
 
 const BLACK: Color = Color::RGB(0, 0, 0);
 const WHITE: Color = Color::RGB(255, 255, 255);
@@ -31,7 +26,7 @@ const DEAD: u8 = 0;
 const ALIVE: u8 = 1;
 const DYING: u8 = 2;
 
-pub fn random_cellmap() -> [u8; CELLMAP_SIZE as usize] {
+fn random_cellmap() -> [u8; CELLMAP_SIZE as usize] {
     let mut cellmap: [u8; CELLMAP_SIZE as usize] = [0; CELLMAP_SIZE as usize];
     for i in 0..CELLMAP_SIZE-1 {
         cellmap[i as usize] = rand::random::<bool>() as u8;
@@ -39,90 +34,50 @@ pub fn random_cellmap() -> [u8; CELLMAP_SIZE as usize] {
     return cellmap;
 }
 
-pub fn line() -> [u8; CELLMAP_SIZE as usize] {
+fn new_cellmap() -> [u8; CELLMAP_SIZE as usize] {
     let mut cellmap: [u8; CELLMAP_SIZE as usize] = [0; CELLMAP_SIZE as usize];
     for i in 0..CELLMAP_SIZE-1 {
-        if i % CELLMAP_WIDTH == 0 {
-            cellmap[i as usize] = ALIVE;
-        }
+        cellmap[i as usize] = DEAD;
     }
     return cellmap;
 }
 
-pub fn GoL(prev_gen: [u8; CELLMAP_SIZE as usize]) -> [u8; CELLMAP_SIZE as usize] {
+fn life(cellmap: [u8; CELLMAP_SIZE as usize]) -> [u8; CELLMAP_SIZE as usize] {
 
     let mut next_gen: [u8; CELLMAP_SIZE as usize] = [DEAD; CELLMAP_SIZE as usize];
 
-    for i in 0..CELLMAP_SIZE-1 {
-
-        let cell = prev_gen[i as usize];
-        let mut col: i32 = -1;
-        let mut row: i32 = -1;
+    for i in 0..CELLMAP_SIZE {
         
-        let mut neighbors: i32 = 0;
-        let pos = i as i32;
+        let neighbors: u8 = cellmap[(i - 1 - CELLMAP_WIDTH).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i - CELLMAP_WIDTH).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i + 1 - CELLMAP_WIDTH).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i - 1).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i + 1).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i - 1 + CELLMAP_WIDTH).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i + CELLMAP_WIDTH).modulo(CELLMAP_SIZE) as usize]+
+            cellmap[(i + 1 + CELLMAP_WIDTH).modulo(CELLMAP_SIZE) as usize];
 
-        let neighbors_pos: [i32; 8] = [pos - 1, pos + 1, pos - CELLMAP_WIDTH, pos + CELLMAP_WIDTH, pos - CELLMAP_WIDTH - 1, pos - CELLMAP_WIDTH + 1, pos + CELLMAP_WIDTH - 1, pos + CELLMAP_WIDTH + 1];
-        for p in neighbors_pos {
-            if prev_gen[(p.modulo(CELLMAP_SIZE)) as usize] == ALIVE {
-                neighbors += 1;
-            }
-        }
-
-        if cell == ALIVE {
+        if cellmap[i as usize] == ALIVE {
             if neighbors < 2 || neighbors > 3 {
                 next_gen[i as usize] = DEAD;
-            } else {
+                continue;
+            } else{
                 next_gen[i as usize] = ALIVE;
+                continue;
             }
         } else if neighbors == 3 {
             next_gen[i as usize] = ALIVE;
+            continue;
         }
     }
     return next_gen;
- }
+}
 
- pub fn Brain(prev_gen: [u8; CELLMAP_SIZE as usize]) -> [u8; CELLMAP_SIZE as usize] {
-
-    let mut next_gen: [u8; CELLMAP_SIZE as usize] = [DEAD; CELLMAP_SIZE as usize];
-
-    for i in 0..CELLMAP_SIZE-1 {
-
-        let cell = prev_gen[i as usize];
-        let mut col: i32 = -1;
-        let mut row: i32 = -1;
-        
-        let mut neighbors: i32 = 0;
-        let pos = i as i32;
-
-        let neighbors_pos: [i32; 8] = [pos - 1, pos + 1, pos - CELLMAP_WIDTH, pos + CELLMAP_WIDTH, pos - CELLMAP_WIDTH - 1, pos - CELLMAP_WIDTH + 1, pos + CELLMAP_WIDTH - 1, pos + CELLMAP_WIDTH + 1];
-        for p in neighbors_pos {
-            if prev_gen[(p.modulo(CELLMAP_SIZE)) as usize] == ALIVE {
-                neighbors += 1;
-            }
-        }
-
-        if cell == ALIVE {
-            next_gen[i as usize] = DYING
-        } else if cell == DYING {
-            next_gen[i as usize] = DEAD
-        } else if neighbors == 2 {
-            next_gen[i as usize] = ALIVE
-        }
-    }
-    return next_gen;
-
- }
-
-
-pub fn main() {
-
+fn sim(num_generations: i32, start_paused: bool) {
     let mut cellmap = random_cellmap();
 
     let sdl_context = sdl2::init().unwrap();
-    let timer = sdl_context.timer().unwrap();
-    let frame_delay = 1000 / FPS as i32;
-    let ticks = timer.ticks() as i32;
+    let _timer = sdl_context.timer().unwrap();
 
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -138,7 +93,8 @@ pub fn main() {
 
     canvas.present();
 
-    let mut paused = true;
+    let mut paused = start_paused;
+    let mut generation = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -147,8 +103,8 @@ pub fn main() {
         canvas.clear();
         canvas.set_draw_color(WHITE);
         for i in 0..CELLMAP_SIZE {
-            let col = i as i32 / CELLMAP_WIDTH;
-            let row = i as i32 % CELLMAP_WIDTH;
+            let col: i32 = i as i32 / CELLMAP_WIDTH;
+            let row: i32 = (i as i32).modulo(CELLMAP_WIDTH);
             if cellmap[i as usize] == ALIVE {
                 canvas.set_draw_color(WHITE);
                 canvas.fill_rect(Rect::new((col * CELL_WIDTH) as i32, (row * CELL_HEIGHT) as i32, CELL_WIDTH as u32, CELL_HEIGHT as u32)).unwrap();
@@ -160,26 +116,40 @@ pub fn main() {
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                Event::Quit {..} => {
                     break 'running
+                },
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    cellmap = new_cellmap();
+                    generation = 0;
                 },
                 Event::KeyDown { keycode: Some(Keycode::R), .. } => {
                     cellmap = random_cellmap();
+                    generation = 0;
                 },
                 Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
                     paused = !paused;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Period), .. } => {
+                    cellmap = life(cellmap);
+                    generation += 1;
                 },
                 _ => {}
             }
         }
         if !paused {
-            cellmap = GoL(cellmap);
-            //cellmap = Brain(cellmap);
+            cellmap = life(cellmap);
+            generation += 1;
+        }
+
+        if generation == num_generations {
+            break 'running
         }
 
         canvas.present();
-
-        //std::thread::sleep(Duration::from_millis(frame_delay as u64));
     }
+}
+
+fn main() {
+    sim(1000, false);
 }

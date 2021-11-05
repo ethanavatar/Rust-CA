@@ -5,6 +5,7 @@ use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::rect::Rect;
+use sdl2::mouse::MouseButton;
 
 use modulo::Mod;
 
@@ -74,10 +75,10 @@ fn life(cellmap: [u8; CELLMAP_SIZE as usize]) -> [u8; CELLMAP_SIZE as usize] {
 }
 
 fn sim(num_generations: i32, start_paused: bool) {
+
     let mut cellmap = random_cellmap();
 
     let sdl_context = sdl2::init().unwrap();
-    let _timer = sdl_context.timer().unwrap();
 
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -92,6 +93,12 @@ fn sim(num_generations: i32, start_paused: bool) {
     canvas.clear();
 
     canvas.present();
+
+    let mut mouse_click = false;
+    let mut mouse_hold = false;
+    let mut hold_value = DEAD;
+
+    let mut last_mouse_pos = (0, 0);
 
     let mut paused = start_paused;
     let mut generation = 0;
@@ -134,9 +141,44 @@ fn sim(num_generations: i32, start_paused: bool) {
                     cellmap = life(cellmap);
                     generation += 1;
                 },
+
+                Event::MouseMotion { x, y, .. } => {
+                    let col: i32 = x / CELL_WIDTH;
+                    let row: i32 = y / CELL_HEIGHT;
+                    last_mouse_pos = (col, row);
+                },
+                Event::MouseButtonDown { x, y, mouse_btn: MouseButton::Left, .. } => {
+                    mouse_click = true;
+                    mouse_hold = true;
+                },
+                Event::MouseButtonUp { x, y, mouse_btn: MouseButton::Left, .. } => {
+                    mouse_hold = false;
+                },
                 _ => {}
             }
         }
+
+        if mouse_click {
+            let col: i32 = last_mouse_pos.0;
+            let row: i32 = last_mouse_pos.1;
+            let i: i32 = (col * CELLMAP_WIDTH + row) as i32;
+            if cellmap[i as usize] == DEAD {
+                cellmap[i as usize] = ALIVE;
+                hold_value = ALIVE;
+            } else {
+                cellmap[i as usize] = DEAD;
+                hold_value = DEAD;
+            }
+            mouse_click = false;
+        }
+        if mouse_hold {
+            if hold_value == ALIVE {
+                cellmap[(last_mouse_pos.0 * CELLMAP_WIDTH + last_mouse_pos.1) as usize] = ALIVE;
+            } else { 
+                cellmap[(last_mouse_pos.0 * CELLMAP_WIDTH + last_mouse_pos.1) as usize] = DEAD;
+            }
+        }
+
         if !paused {
             cellmap = life(cellmap);
             generation += 1;

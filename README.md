@@ -6,7 +6,7 @@
 
 Clone the repo and navigate into it.
 ```bash
-git clone https://github.com/ethanavatar/Rust_CA.git
+git clone https://github.com/ethanavatar/Rust-CA.git
 cd Rust_CA/
 ```
 

@@ -1,13 +1,13 @@
-# Game of Life
+# Rust Cellular Automata
 
-### An interactive pygame implementation of Conway's Game of Life
+### An interactive SDL2 implementation of Conway's Game of Life
 
 ## Installation
 
 Clone the repo and navigate into it.
 ```bash
-git clone https://github.com/ethanavatar/Game-of-Life-py.git
-cd Game-of-Life-py/
+git clone https://github.com/ethanavatar/Rust_CA.git
+cd Rust_CA/
 ```
 
 Build the app using:

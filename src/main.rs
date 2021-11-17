@@ -193,5 +193,5 @@ fn sim(num_generations: i32, start_paused: bool) {
 }
 
 fn main() {
-    sim(1000, false);
+    sim(-1, false);
 }

@@ -7,7 +7,7 @@
 Clone the repo and navigate into it.
 ```bash
 git clone https://github.com/ethanavatar/Rust-CA.git
-cd Rust_CA/
+cd Rust-CA/
 ```
 
 Build the app using:
